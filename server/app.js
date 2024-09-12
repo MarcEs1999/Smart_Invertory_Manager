@@ -2,105 +2,136 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const db = require('./database');
+const jwt = require('jsonwebtoken');  // JWT for authentication
+const bcrypt = require('bcrypt');     // bcrypt for password hashing
+
+const SECRET_KEY = '123456789';
 
 // Middleware parsing JSON bodies
 app.use(express.json());
+
+// Helper: Authenticate JWT Token
+function authenticateToken(req, res, next) {
+    const token = req.headers['authorization'];
+    if (!token) return res.status(403).json({ error: 'No token provided' });
+
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Invalid token' });
+        req.user = user;  // Attach user to request
+        next();
+    });
+}
+
+// Helper: Authorize based on user roles
+function authorizeRole(role) {
+    return (req, res, next) => {
+        if (req.user.role !== role) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+        next();
+    };
+}
 
 // Root route for the base URL ("/")
 app.get('/', (req, res) => {
     res.send('Welcome to the Smart Inventory Manager API');
 });
 
-// Route: Fetch all inventory items
-app.get('/inventory', (req, res, next) => {
-    db.all("SELECT * FROM inventory", [], (err, rows) => {
-        if (err) {
-            return next(err); // Pass the error to the error-handling middleware
+// Route: User Registration
+app.post('/register', async (req, res, next) => {
+    const { username, password, role } = req.body;
+
+    if (!username || !password || !role) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
+    db.run(sql, [username, hashedPassword, role], function(err) {
+        if (err) return next(err);
+        res.status(201).json({ message: 'User registered successfully', userId: this.lastID });
+    });
+});
+
+// Route: User Login (JWT Generation)
+app.post('/login', (req, res, next) => {
+    const { username, password } = req.body;
+
+    db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
+        if (err || !user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(400).json({ error: 'Invalid credentials' });
         }
+
+        const token = jwt.sign({ username: user.username, role: user.role }, SECRET_KEY);
+        res.json({ token });
+    });
+});
+
+// Route: Fetch all inventory items (Requires authentication)
+app.get('/inventory', authenticateToken, (req, res, next) => {
+    db.all("SELECT * FROM inventory", [], (err, rows) => {
+        if (err) return next(err);
         res.json(rows);
     });
 });
 
-/* Post function: add a new item */
-app.post('/inventory', (req, res, next) => {
-    const { name, quantity } = req.body;
-
-    // Validate input
-    if (!name || typeof name !== 'string' || name.trim() === '') {
-        return res.status(400).json({ error: 'Name is required and must be a non-empty string' });
-    }
-    if (!quantity || typeof quantity !== 'number' || quantity <= 0) {
-        return res.status(400).json({ error: 'Quantity is required and must be a positive number' });
-    }
-
-    const sql = "INSERT INTO inventory (name, quantity) VALUES (?, ?)";
-    db.run(sql, [name, quantity], function(err) {
-        if (err) {
-            return next(err); // Pass the error to the error-handling middleware
-        }
-        res.status(201).json({
-            message: 'Item added successfully',
-            item: { id: this.lastID, name, quantity }
-        });
+// Route: Fetch low-stock items (Requires authentication)
+app.get('/inventory/low-stock', authenticateToken, (req, res, next) => {
+    const lowStockThreshold = 5;  // Example threshold
+    db.all("SELECT * FROM inventory WHERE quantity < ?", [lowStockThreshold], (err, rows) => {
+        if (err) return next(err);
+        res.json(rows);
     });
 });
 
-/* Put function: update an existing item in the inventory */
-app.put('/inventory/:id', (req, res, next) => {
-    const { id } = req.params;
-    const { name, quantity } = req.body;
+// Route: Add new inventory item (Admin role required)
+app.post('/inventory', authenticateToken, authorizeRole('admin'), (req, res, next) => {
+    const { name, quantity, threshold = 5 } = req.body;
 
-    // Validate input
-    if (name && (typeof name !== 'string' || name.trim() === '')) {
-        return res.status(400).json({ error: 'Name must be a non-empty string' });
-    }
-    if (quantity && (typeof quantity !== 'number' || quantity <= 0)) {
-        return res.status(400).json({ error: 'Quantity must be a positive number' });
+    if (!name || typeof name !== 'string' || name.trim() === '' || !quantity || typeof quantity !== 'number') {
+        return res.status(400).json({ error: 'Invalid input' });
     }
 
-    const sql = "UPDATE inventory SET name = ?, quantity = ? WHERE id = ?";
-    db.run(sql, [name, quantity, id], function(err) {
-        if (err) {
-            return next(err); // Pass the error to the error-handling middleware
-        }
-        if (this.changes === 0) {
-            return res.status(404).json({ message: 'Item not found' });
-        }
-        res.json({
-            message: 'Item updated successfully',
-            item: { id, name, quantity }
-        });
+    const sql = "INSERT INTO inventory (name, quantity, threshold) VALUES (?, ?, ?)";
+    db.run(sql, [name, quantity, threshold], function(err) {
+        if (err) return next(err);
+        res.status(201).json({ message: 'Item added', item: { id: this.lastID, name, quantity, threshold } });
     });
 });
 
-/* Delete function */
-app.delete('/inventory/:id', (req, res, next) => {
+// Route: Update inventory item (Admin role required)
+app.put('/inventory/:id', authenticateToken, authorizeRole('admin'), (req, res, next) => {
     const { id } = req.params;
+    const { name, quantity, threshold } = req.body;
 
-    // Validate input
-    if (!id || isNaN(id)) {
-        return res.status(400).json({ error: 'Valid item ID is required' });
+    if ((name && typeof name !== 'string') || (quantity && typeof quantity !== 'number') || (threshold && typeof threshold !== 'number')) {
+        return res.status(400).json({ error: 'Invalid input' });
     }
+
+    const sql = "UPDATE inventory SET name = ?, quantity = ?, threshold = ? WHERE id = ?";
+    db.run(sql, [name, quantity, threshold, id], function(err) {
+        if (err) return next(err);
+        if (this.changes === 0) return res.status(404).json({ message: 'Item not found' });
+        res.json({ message: 'Item updated', item: { id, name, quantity, threshold } });
+    });
+});
+
+// Route: Delete inventory item (Admin role required)
+app.delete('/inventory/:id', authenticateToken, authorizeRole('admin'), (req, res, next) => {
+    const { id } = req.params;
 
     const sql = "DELETE FROM inventory WHERE id = ?";
     db.run(sql, id, function(err) {
-        if (err) {
-            return next(err); // Pass the error to the error-handling middleware
-        }
-        if (this.changes === 0) {
-            return res.status(404).json({ message: 'Item not found' });
-        }
-        res.json({ message: 'Item deleted successfully' });
+        if (err) return next(err);
+        if (this.changes === 0) return res.status(404).json({ message: 'Item not found' });
+        res.json({ message: 'Item deleted' });
     });
 });
 
-// Error-handling middleware (Move this to the end of your file)
+// Error-handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack); // Log error details for debugging
-    res.status(500).json({
-        message: 'An internal server error occurred.',
-        error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong!'
-    });
+    console.error(err.stack);
+    res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
 // Start server
