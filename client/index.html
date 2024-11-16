@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Inventory Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="script.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Smart Inventory Manager</h1>
+        <div class="user-info">
+            <span id="usernameDisplay"></span>
+            <button id="logoutBtn" class="hidden">Logout</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Side Navigation Menu -->
+        <nav class="side-nav">
+            <div class="logo-placeholder">Logo Here</div>
+            <button id="loginBtn">Login</button>
+            <button id="registerBtn">Register</button>
+            <button id="viewInventoryBtn">View Inventory</button>
+            <button id="addItemBtn">Add Item</button>
+            <button id="updateItemBtn">Update Item</button>
+            <button id="viewUsersBtn">Manage Users</button> <!-- Renamed button for viewing user management -->
+        </nav>
+
+        <!-- Main Content Area -->
+        <div class="content-container">
+            <!-- Login Section -->
+            <section id="loginSection" class="hidden">
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+
+                    <button type="submit">Login</button>
+                </form>
+            </section>
+
+            <!-- Register Section -->
+            <section id="registerSection" class="hidden">
+                <h2>Register</h2>
+                <form id="registerForm">
+                    <label for="registerUsername">Username:</label>
+                    <input type="text" id="registerUsername" name="registerUsername" required>
+
+                    <label for="registerPassword">Password:</label>
+                    <input type="password" id="registerPassword" name="registerPassword" required>
+
+                    <label for="registerRole">Role:</label>
+                    <select id="registerRole" name="registerRole" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+
+                    <button type="submit">Register</button>
+                </form>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventorySection" class="hidden">
+                <h2>Inventory</h2>
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Item Number</th>
+                            <th>Product Name</th>
+                            <th>Description / Reference</th>
+                            <th>Quantity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Inventory items will be dynamically added here -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Add Item Section -->
+            <section id="addItemSection" class="hidden">
+                <h2>Add New Item</h2>
+                <form id="addItemForm">
+                    <label for="itemName">Product Name:</label>
+                    <input type="text" id="itemName" name="itemName" required>
+
+                    <label for="itemDescription">Description / Reference:</label>
+                    <input type="text" id="itemDescription" name="itemDescription">
+
+                    <label for="itemQuantity">Quantity:</label>
+                    <input type="number" id="itemQuantity" name="itemQuantity" required>
+
+                    <button type="submit">Add Item</button>
+                </form>
+            </section>
+
+            <!-- Update Item Section -->
+            <section id="updateItemSection" class="hidden">
+                <h2>Update Item</h2>
+                <form id="updateItemForm">
+                    <label for="updateItemNumber">Item Number:</label>
+                    <input type="text" id="updateItemNumber" name="updateItemNumber" required>
+
+                    <label for="updateItemName">Product Name:</label>
+                    <input type="text" id="updateItemName" name="updateItemName" required>
+
+                    <label for="updateItemDescription">Description:</label>
+                    <input type="text" id="updateItemDescription" name="updateItemDescription">
+
+                    <label for="updateItemQuantity">Quantity:</label>
+                    <input type="number" id="updateItemQuantity" name="updateItemQuantity" required>
+
+                    <button type="submit">Update Item</button>
+                </form>
+            </section>
+
+            <!-- User Management Section -->
+            <section id="userSection" class="hidden">
+                <h2>Manage Users</h2>
+                <table id="userTable">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- User rows will be populated here -->
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Smart Inventory Manager</p>
+    </footer>
+</body>
+
+</html>

@@ -17,9 +17,17 @@ db.serialize(() => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            role TEXT NOT NULL
+            role TEXT NOT NULL,
+            fullName TEXT,
+            email TEXT UNIQUE
         )
-    `);
+    `, (err) => {
+        if (err) {
+            console.error('Error creating users table:', err);
+        } else {
+            console.log('Users table is ready.');
+        }
+    });
 });
 
 // Create "inventory" table if it doesn't exist
@@ -29,9 +37,15 @@ db.serialize(() => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             quantity INTEGER NOT NULL,
-            threshold INTEGER DEFAULT 5  -- Default threshold for low-stock
+            description TEXT
         )
-    `);
+    `, (err) => {
+        if (err) {
+            console.error('Error creating inventory table:', err);
+        } else {
+            console.log('Inventory table is ready.');
+        }
+    });
 });
 
 module.exports = db;

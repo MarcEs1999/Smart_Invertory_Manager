@@ -1,0 +1,22 @@
+{
+    "name": "smart_inventory_manager",
+    "version": "1.0.0",
+    "description": "A simple inventory management system for academic purposes.",
+    "main": "app.js",
+    "scripts": {
+      "start": "node app.js",
+      "dev": "nodemon app.js"
+    },
+    "author": "Marcos Espinosa and team",
+    "license": "ISC",
+    "dependencies": {
+      "express": "^4.17.1",
+      "sqlite3": "^5.0.2",
+      "jsonwebtoken": "^8.5.1",
+      "bcrypt": "^5.0.1"
+    },
+    "devDependencies": {
+      "nodemon": "^2.0.15"
+    }
+}
+  
