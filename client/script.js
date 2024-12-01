@@ -154,7 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-
     // Handle update item form submission
     if (updateItemForm) {
         updateItemForm.addEventListener("submit", async (e) => {
